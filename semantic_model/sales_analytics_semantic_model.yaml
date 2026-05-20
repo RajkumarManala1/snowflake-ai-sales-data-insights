@@ -1,0 +1,362 @@
+name: sales_analytics_insights
+description: >
+  AI-powered sales analytics for the SALES_ANALYTICS_2025 database.
+  Contains curated internet sales data with product performance, territory analysis,
+  customer segmentation, daily trends, and budget tracking.
+  Data period: Dec 29 2010 to Jan 20 2011. Product line: Bikes (Mountain and Road).
+
+tables:
+
+  - name: fact_sales_enriched
+    description: >
+      Fully enriched internet sales fact table. Each row is one sales order line.
+      Joined with product, customer, and geography dimensions.
+      Includes calculated fields: gross_profit, profit_margin_pct, shipping_days.
+    base_table:
+      database: SALES_ANALYTICS_2025
+      schema: CURATED
+      table: FACT_SALES_ENRICHED
+
+    dimensions:
+      - name: order_number
+        synonyms:
+          - sales order
+          - order id
+          - SO number
+        description: Unique sales order number (e.g. SO43697)
+        expr: order_number
+        data_type: VARCHAR
+        unique: false
+
+      - name: product_name
+        synonyms:
+          - product
+          - bike name
+          - item
+        description: Full product name with model, color, and size (e.g. Mountain-200 Black, 46)
+        expr: product_name
+        data_type: VARCHAR
+
+      - name: model
+        synonyms:
+          - bike model
+          - product model
+        description: Product model family (Mountain-200, Road-350-W, Road-150, Road-650)
+        expr: model
+        data_type: VARCHAR
+
+      - name: product_line
+        synonyms:
+          - line
+          - bike type
+          - product type
+        description: Mountain or Road product line
+        expr: product_line
+        data_type: VARCHAR
+
+      - name: category
+        synonyms:
+          - product category
+        description: Product category (all are Bikes in this dataset)
+        expr: category
+        data_type: VARCHAR
+
+      - name: color
+        synonyms:
+          - bike color
+          - product color
+        description: Product color (Black, Silver, Red, Yellow)
+        expr: color
+        data_type: VARCHAR
+
+      - name: territory_name
+        synonyms:
+          - territory
+          - region
+          - sales region
+          - market
+          - country
+        description: >
+          Sales territory name (Australia, Northwest, Southwest, Germany,
+          United Kingdom, France, Canada)
+        expr: territory_name
+        data_type: VARCHAR
+
+      - name: full_name
+        synonyms:
+          - customer name
+          - buyer name
+          - customer
+        description: Customer full name (first + last). NULL for unmatched customers.
+        expr: full_name
+        data_type: VARCHAR
+
+      - name: gender
+        synonyms:
+          - sex
+          - customer gender
+        description: Customer gender (M or F)
+        expr: gender
+        data_type: VARCHAR
+
+      - name: age_group
+        synonyms:
+          - age range
+          - age bracket
+        description: Customer age group (25-29, 30-39, 40-49, 50-59, 60+)
+        expr: age_group
+        data_type: VARCHAR
+
+      - name: income_band
+        synonyms:
+          - income level
+          - income range
+          - salary range
+        description: >
+          Customer income bracket: Low (<$30K), Medium ($30K-$60K),
+          High ($60K-$100K), Very High ($100K+)
+        expr: income_band
+        data_type: VARCHAR
+
+      - name: education
+        synonyms:
+          - education level
+          - degree
+        description: Customer education level (Bachelors, High School, Partial College, etc.)
+        expr: education
+        data_type: VARCHAR
+
+      - name: occupation
+        synonyms:
+          - job
+          - profession
+        description: Customer occupation (Professional, Skilled Manual, Clerical, Management)
+        expr: occupation
+        data_type: VARCHAR
+
+      - name: order_day_of_week
+        synonyms:
+          - day of week
+          - weekday
+        description: Day name when order was placed (Monday, Tuesday, etc.)
+        expr: order_day_of_week
+        data_type: VARCHAR
+
+    time_dimensions:
+      - name: order_date
+        synonyms:
+          - date
+          - sale date
+          - transaction date
+          - order day
+        description: Date the order was placed
+        expr: order_date
+        data_type: DATE
+
+      - name: ship_date
+        synonyms:
+          - shipping date
+          - delivery date
+        description: Date the order was shipped
+        expr: ship_date
+        data_type: DATE
+
+    measures:
+      - name: sales_amount
+        synonyms:
+          - revenue
+          - sale amount
+          - order amount
+          - total sale
+        description: Sales revenue amount in USD for this order line
+        expr: sales_amount
+        data_type: FLOAT
+        default_aggregation: sum
+
+      - name: gross_profit
+        synonyms:
+          - profit
+          - margin dollars
+          - earnings
+        description: Gross profit (sales_amount minus total_cost)
+        expr: gross_profit
+        data_type: FLOAT
+        default_aggregation: sum
+
+      - name: profit_margin_pct
+        synonyms:
+          - margin
+          - profit margin
+          - margin percent
+        description: Profit margin as percentage (gross_profit / sales_amount * 100)
+        expr: profit_margin_pct
+        data_type: FLOAT
+        default_aggregation: avg
+
+      - name: unit_price
+        synonyms:
+          - price
+          - selling price
+        description: Unit selling price in USD
+        expr: unit_price
+        data_type: FLOAT
+        default_aggregation: avg
+
+      - name: total_cost
+        synonyms:
+          - cost
+          - product cost
+          - COGS
+        description: Total product cost (cost of goods sold)
+        expr: total_cost
+        data_type: FLOAT
+        default_aggregation: sum
+
+      - name: order_quantity
+        synonyms:
+          - quantity
+          - units
+          - items ordered
+        description: Number of units ordered (typically 1 per line)
+        expr: order_quantity
+        data_type: INT
+        default_aggregation: sum
+
+      - name: tax_amount
+        synonyms:
+          - tax
+          - sales tax
+        description: Tax amount in USD
+        expr: tax_amount
+        data_type: FLOAT
+        default_aggregation: sum
+
+      - name: freight
+        synonyms:
+          - shipping cost
+          - delivery cost
+        description: Freight/shipping cost in USD
+        expr: freight
+        data_type: FLOAT
+        default_aggregation: sum
+
+      - name: shipping_days
+        synonyms:
+          - delivery time
+          - days to ship
+        description: Number of days between order date and ship date
+        expr: shipping_days
+        data_type: INT
+        default_aggregation: avg
+
+  - name: fact_budget
+    description: >
+      Monthly budget allocations for 2022-2023. Used for budget vs actual comparison
+      and forecasting.
+    base_table:
+      database: SALES_ANALYTICS_2025
+      schema: CURATED
+      table: BUDGET
+
+    time_dimensions:
+      - name: date
+        synonyms:
+          - budget month
+          - month
+          - period
+        description: First day of the budget month
+        expr: DATE
+        data_type: DATE
+
+    measures:
+      - name: budget
+        synonyms:
+          - budget amount
+          - planned revenue
+          - target
+          - allocated budget
+        description: Monthly budget amount in USD
+        expr: BUDGET
+        data_type: FLOAT
+        default_aggregation: sum
+
+verified_queries:
+  - name: total_revenue
+    question: What is the total revenue?
+    sql: |
+      SELECT SUM(sales_amount) AS total_revenue
+      FROM __fact_sales_enriched
+    verified_by: Raj Manala
+
+  - name: top_5_products_by_revenue
+    question: What are the top 5 products by revenue?
+    sql: |
+      SELECT product_name,
+             SUM(sales_amount) AS total_revenue,
+             COUNT(*) AS total_orders
+      FROM __fact_sales_enriched
+      GROUP BY product_name
+      ORDER BY total_revenue DESC
+      LIMIT 5
+    verified_by: Raj Manala
+
+  - name: revenue_by_territory
+    question: Show revenue by territory
+    sql: |
+      SELECT territory_name,
+             SUM(sales_amount) AS total_revenue,
+             COUNT(*) AS total_orders
+      FROM __fact_sales_enriched
+      GROUP BY territory_name
+      ORDER BY total_revenue DESC
+    verified_by: Raj Manala
+
+  - name: mountain_vs_road
+    question: Compare Mountain bikes vs Road bikes
+    sql: |
+      SELECT product_line,
+             SUM(sales_amount) AS total_revenue,
+             COUNT(*) AS total_orders,
+             AVG(profit_margin_pct) AS avg_margin
+      FROM __fact_sales_enriched
+      GROUP BY product_line
+      ORDER BY total_revenue DESC
+    verified_by: Raj Manala
+
+  - name: daily_sales_trend
+    question: What is the daily sales trend?
+    sql: |
+      SELECT order_date,
+             SUM(sales_amount) AS daily_revenue,
+             SUM(gross_profit) AS daily_profit,
+             COUNT(*) AS orders
+      FROM __fact_sales_enriched
+      GROUP BY order_date
+      ORDER BY order_date
+    verified_by: Raj Manala
+
+  - name: average_profit_margin
+    question: What is the average profit margin?
+    sql: |
+      SELECT AVG(profit_margin_pct) AS avg_profit_margin
+      FROM __fact_sales_enriched
+    verified_by: Raj Manala
+
+  - name: model_highest_profit_margin
+    question: Which model has the highest profit margin?
+    sql: |
+      SELECT model,
+             AVG(profit_margin_pct) AS avg_margin,
+             SUM(sales_amount) AS total_revenue
+      FROM __fact_sales_enriched
+      GROUP BY model
+      ORDER BY avg_margin DESC
+    verified_by: Raj Manala
+
+  - name: total_budget_2023
+    question: What is the total budget for 2023?
+    sql: |
+      SELECT SUM(budget) AS total_budget
+      FROM __fact_budget
+      WHERE YEAR(date) = 2023
+    verified_by: Raj Manala
