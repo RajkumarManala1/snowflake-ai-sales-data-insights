@@ -23,6 +23,9 @@ I extended that idea into a sales analytics use case where I built:
 
 The final goal was to make sales insights easy to access without writing SQL.
 
+<img width="1649" height="632" alt="image" src="https://github.com/user-attachments/assets/30c0629a-48a1-4994-9d6e-1d90db640227" />
+
+
 ---
 
 ## What This Project Does
