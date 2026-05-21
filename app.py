@@ -64,6 +64,133 @@ CORTEX_ANALYST_ENDPOINT = f"{ACCOUNT_URL}/api/v2/cortex/analyst/message"
 SQL_API_ENDPOINT = f"{ACCOUNT_URL}/api/v2/statements"
 
 
+# Verified SQL for common demo questions.
+# These are used only for exact common questions so the public demo returns clean,
+# reliable outputs. Other questions still go to Cortex Analyst.
+PRESET_SQL = {
+    "what is the total revenue?": """
+        SELECT ROUND(SUM(sales_amount), 2) AS total_revenue
+        FROM SALES_ANALYTICS_2025.CURATED.FACT_SALES_ENRICHED
+    """,
+    "what is the total revenue": """
+        SELECT ROUND(SUM(sales_amount), 2) AS total_revenue
+        FROM SALES_ANALYTICS_2025.CURATED.FACT_SALES_ENRICHED
+    """,
+    "top 5 products by revenue": """
+        SELECT product_name,
+               ROUND(SUM(sales_amount), 2) AS total_revenue,
+               COUNT(*) AS total_orders
+        FROM SALES_ANALYTICS_2025.CURATED.FACT_SALES_ENRICHED
+        GROUP BY product_name
+        ORDER BY total_revenue DESC
+        LIMIT 5
+    """,
+    "revenue by territory": """
+        SELECT territory_name,
+               ROUND(SUM(sales_amount), 2) AS total_revenue,
+               COUNT(*) AS total_orders
+        FROM SALES_ANALYTICS_2025.CURATED.FACT_SALES_ENRICHED
+        GROUP BY territory_name
+        ORDER BY total_revenue DESC
+    """,
+    "compare mountain vs road bikes": """
+        SELECT product_line,
+               ROUND(SUM(sales_amount), 2) AS total_revenue,
+               COUNT(*) AS total_orders,
+               ROUND(AVG(profit_margin_pct), 2) AS avg_margin_pct
+        FROM SALES_ANALYTICS_2025.CURATED.FACT_SALES_ENRICHED
+        GROUP BY product_line
+        ORDER BY total_revenue DESC
+    """,
+    "daily sales trend": """
+        SELECT TO_VARCHAR(order_date, 'YYYY-MM-DD') AS order_date,
+               ROUND(SUM(sales_amount), 2) AS daily_revenue,
+               ROUND(SUM(gross_profit), 2) AS daily_profit,
+               COUNT(*) AS orders
+        FROM SALES_ANALYTICS_2025.CURATED.FACT_SALES_ENRICHED
+        WHERE order_date IS NOT NULL
+        GROUP BY order_date
+        ORDER BY order_date
+    """,
+    "which model has the best margin?": """
+        SELECT model,
+               ROUND(AVG(profit_margin_pct), 2) AS avg_margin_pct,
+               ROUND(SUM(sales_amount), 2) AS total_revenue,
+               COUNT(*) AS total_orders
+        FROM SALES_ANALYTICS_2025.CURATED.FACT_SALES_ENRICHED
+        GROUP BY model
+        ORDER BY avg_margin_pct DESC
+    """,
+    "which model has the best margin": """
+        SELECT model,
+               ROUND(AVG(profit_margin_pct), 2) AS avg_margin_pct,
+               ROUND(SUM(sales_amount), 2) AS total_revenue,
+               COUNT(*) AS total_orders
+        FROM SALES_ANALYTICS_2025.CURATED.FACT_SALES_ENRICHED
+        GROUP BY model
+        ORDER BY avg_margin_pct DESC
+    """,
+    "what is the 2023 budget?": """
+        SELECT ROUND(SUM(budget), 2) AS total_budget_2023
+        FROM SALES_ANALYTICS_2025.CURATED.BUDGET
+        WHERE YEAR(date) = 2023
+    """,
+    "what is the 2023 budget": """
+        SELECT ROUND(SUM(budget), 2) AS total_budget_2023
+        FROM SALES_ANALYTICS_2025.CURATED.BUDGET
+        WHERE YEAR(date) = 2023
+    """,
+    "average shipping days": """
+        SELECT TO_VARCHAR(MIN(order_date), 'YYYY-MM-DD') AS start_date,
+               TO_VARCHAR(MAX(order_date), 'YYYY-MM-DD') AS end_date,
+               ROUND(AVG(shipping_days), 2) AS avg_shipping_days
+        FROM SALES_ANALYTICS_2025.CURATED.FACT_SALES_ENRICHED
+        WHERE shipping_days IS NOT NULL
+          AND order_date IS NOT NULL
+    """,
+    "what is the average shipping days?": """
+        SELECT TO_VARCHAR(MIN(order_date), 'YYYY-MM-DD') AS start_date,
+               TO_VARCHAR(MAX(order_date), 'YYYY-MM-DD') AS end_date,
+               ROUND(AVG(shipping_days), 2) AS avg_shipping_days
+        FROM SALES_ANALYTICS_2025.CURATED.FACT_SALES_ENRICHED
+        WHERE shipping_days IS NOT NULL
+          AND order_date IS NOT NULL
+    """,
+    "what is the average shipping days": """
+        SELECT TO_VARCHAR(MIN(order_date), 'YYYY-MM-DD') AS start_date,
+               TO_VARCHAR(MAX(order_date), 'YYYY-MM-DD') AS end_date,
+               ROUND(AVG(shipping_days), 2) AS avg_shipping_days
+        FROM SALES_ANALYTICS_2025.CURATED.FACT_SALES_ENRICHED
+        WHERE shipping_days IS NOT NULL
+          AND order_date IS NOT NULL
+    """,
+}
+
+
+def normalized_question(question: str) -> str:
+    return " ".join(question.lower().strip().split())
+
+
+def preset_response(question: str) -> Dict[str, Any] | None:
+    sql = PRESET_SQL.get(normalized_question(question))
+    if not sql:
+        return None
+    return {
+        "message": {
+            "content": [
+                {
+                    "type": "text",
+                    "text": "Using a pre-verified query for this common question.",
+                },
+                {
+                    "type": "sql",
+                    "statement": sql,
+                },
+            ]
+        }
+    }
+
+
 def snowflake_headers() -> Dict[str, str]:
     return {
         "Authorization": f"Bearer {PAT}",
@@ -230,8 +357,9 @@ def sql_result_to_dataframe(result: Dict[str, Any]) -> pd.DataFrame:
 
         if snowflake_type in {"FIXED", "REAL"} or "NUMBER" in snowflake_type:
             df[name] = pd.to_numeric(df[name], errors="coerce")
-        elif "DATE" in snowflake_type or "TIMESTAMP" in snowflake_type:
-            df[name] = pd.to_datetime(df[name], errors="coerce")
+        # Keep DATE/TIMESTAMP values as strings for display.
+        # Snowflake SQL API can return date-like values differently depending on type,
+        # so verified demo queries cast dates to VARCHAR explicitly.
 
     return df
 
@@ -356,7 +484,7 @@ if user_question:
     with st.chat_message("assistant"):
         with st.spinner("Asking Cortex Analyst..."):
             try:
-                analyst_response = call_cortex_analyst(user_question)
+                analyst_response = preset_response(user_question) or call_cortex_analyst(user_question)
                 render_response(analyst_response)
                 st.session_state.messages.append(
                     {"role": "assistant", "content": analyst_response}
