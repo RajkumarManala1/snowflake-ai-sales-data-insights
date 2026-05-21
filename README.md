@@ -4,17 +4,6 @@ A public AI-powered sales analytics project that turns curated Snowflake sales d
 
 This project was inspired by Snowflake’s **Intro to Data Engineering using Python in Snowflake** quickstart, then extended into a complete data engineering, analytics, data science, semantic-modeling, and public AI chat application.
 
----
-
-## Live Demo
-
-Add your public Streamlit Community Cloud link here:
-
-```text
-https://your-streamlit-app-url.streamlit.app
-```
-
----
 
 ## Project Story
 
