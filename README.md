@@ -4,6 +4,8 @@ A public AI-powered sales analytics project that turns curated Snowflake sales d
 
 This project was inspired by Snowflake’s **Intro to Data Engineering using Python in Snowflake** quickstart, then extended into a complete data engineering, analytics, data science, semantic-modeling, and public AI chat application.
 
+<img width="1928" height="794" alt="image" src="https://github.com/user-attachments/assets/7298ca62-05aa-4ef2-85f1-b77b51c7a2a6" />
+
 
 ## Project Story
 
