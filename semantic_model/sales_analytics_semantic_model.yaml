@@ -326,11 +326,12 @@ verified_queries:
   - name: daily_sales_trend
     question: What is the daily sales trend?
     sql: |
-      SELECT order_date,
+      SELECT TO_VARCHAR(order_date, 'YYYY-MM-DD') AS order_date,
              SUM(sales_amount) AS daily_revenue,
              SUM(gross_profit) AS daily_profit,
              COUNT(*) AS orders
       FROM __fact_sales_enriched
+      WHERE order_date IS NOT NULL
       GROUP BY order_date
       ORDER BY order_date
     verified_by: Raj Manala
@@ -359,4 +360,15 @@ verified_queries:
       SELECT SUM(budget) AS total_budget
       FROM __fact_budget
       WHERE YEAR(date) = 2023
+    verified_by: Raj Manala
+
+  - name: average_shipping_days
+    question: What is the average shipping days?
+    sql: |
+      SELECT TO_VARCHAR(MIN(order_date), 'YYYY-MM-DD') AS start_date,
+             TO_VARCHAR(MAX(order_date), 'YYYY-MM-DD') AS end_date,
+             AVG(shipping_days) AS avg_shipping_days
+      FROM __fact_sales_enriched
+      WHERE order_date IS NOT NULL
+        AND shipping_days IS NOT NULL
     verified_by: Raj Manala
